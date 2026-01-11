@@ -1,5 +1,5 @@
-# Reproduce Results: FastProg Model
-# Corresponds to: VE_model_FastProg_2025_11_12.R / Vaccine_results_FastProg... / TextResults_FastProg...
+# TB Vaccine Efficacy Analysis: Fast Progression Model
+# This script runs the analysis for the model variant including fast progression.
 
 library(tidyverse)
 library(rateratio.test)

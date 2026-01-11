@@ -1,5 +1,5 @@
-# Reproduce Results: Variable POD Model
-# Corresponds to: VE_model_variablePOD_2025_11_28.R
+# TB Vaccine Efficacy Analysis: Variable POD Model
+# This script runs the analysis for the model variant with variable protection against disease.
 
 library(tidyverse)
 library(rateratio.test)

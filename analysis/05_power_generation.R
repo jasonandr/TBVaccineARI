@@ -1,5 +1,5 @@
 # Generate Power Analysis Data
-# Corresponds to: SampleSizeVE_2025_11_05.R (Generation part)
+# This script runs simulations to generate the dataset required for power calculations.
 
 library(tidyverse)
 library(rateratio.test)

@@ -1,5 +1,5 @@
 # Analyze Power Results
-# Corresponds to: SampleSizeVE_2025_11_05.R (Figure part) / PowerAnalysisTextResults_2025_11_10.R
+# This script generates power curves and calculates required sample sizes based on the simulated data.
 
 library(tidyverse)
 library(ggsci)

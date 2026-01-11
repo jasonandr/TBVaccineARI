@@ -1,5 +1,5 @@
-# Calibration Script
-# Corresponds to: ModelCalibration_2025_10_08.R and ModelCalibration_FastProg...
+# Model Calibration Script
+# This script calibrates the progression ratios to match target incidence rates.
 
 library(readr)
 library(tidyverse)
