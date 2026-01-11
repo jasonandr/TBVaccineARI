@@ -59,7 +59,7 @@ VaccineModel <- function(sims, popsize, epi.params, prog.ratio, QFTenrol, fastpr
     # Initial conditions (Using D.neg for S and D.pos for E/L/EP/LP as they imply infection state)
     # Logic check: S are uninfected, so they would rely on AoN.D.neg if that represents protection from disease GIVEN infection later?
     # Or does AoN.D.neg mean "Trait D protection for those who are currently Negative"?
-    # In variablePOD script:
+    # Logic for variable POD parameterization:
     # Smat = ... (1-vaxon*AoN.D.neg) ...
     # Emat = ... (1-vaxon*AoN.D.pos) ...
     # This implies AoN.D.neg applies to naive recruits, AoN.D.pos applies to prevalent infected recruits.

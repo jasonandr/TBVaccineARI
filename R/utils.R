@@ -86,8 +86,8 @@ VE <- function(res1, res2, popsize, times, timestep = 0.1) {
     p.values <- rep(NA, length(res1[, 1]))
 
     # Cumulative Person-Years calculation
-    # Note: logic adapted from original code: popsize * rowSums(timestep * (1 - res/popsize))
-    # This approximates PY assuming prevalence is low or using prevalence-adjusted remaining time?
+    # Cumulative Person-Years calculation
+    # Approximates PY assuming prevalence is low or using prevalence-adjusted remaining time.
     # Actually, res contains cumulative incidence Imat.
     # The original logic: rowSums(timestep * (1 - res/popsize)) roughly sums up healthy time steps if res is prevalence?
     # In VaccineModel, res is Imat (cumulative incidence).
