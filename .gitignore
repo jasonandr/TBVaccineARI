@@ -1,0 +1,7 @@
+.DS_Store
+.Rproj.user
+.Rhistory
+.RData
+Rplots.pdf
+figures/*.pdf
+data/power_data.rds
