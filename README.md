@@ -55,4 +55,4 @@ source("analysis/06_power_results.R")
 
 ## Model Description
 
-The model is a stochastic SEIR-type compartmental model simulated in discrete time steps. It accounts for vaccine heterogeneity (Leaky vs AoN), reinfection dynamics, and distinct disease pathways (Fast Progression).
+The model is a stochastic SEIR-type compartmental model simulated in discrete time steps. It accounts for different vaccine archetypes ("Leaky" vs "All-or-None"), reinfection dynamics, and distinct disease pathways (Fast Progression).
