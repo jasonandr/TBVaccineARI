@@ -44,7 +44,7 @@ plot_from_df <- function(df, title) {
         scale_x_discrete(labels = c("Medium", "High", "Very High")) +
         theme_classic() +
         theme(legend.position = "none") +
-        labs(title = title, y = "Vaccine Efficacy", x = "Annual Risk of Infection") +
+        labs(title = title, y = "Vaccine Efficacy", x = "Epidemiologic Setting") +
         scale_y_continuous(limits = c(-0.2, 1)) +
         scale_fill_nejm()
 }
