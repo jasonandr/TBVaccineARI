@@ -39,7 +39,7 @@ plot_from_df <- function(df, title) {
         mutate(epi = factor(epi, levels = c("low", "medium", "high"))) %>%
         ggplot(aes(x = epi, y = ve, fill = epi)) +
         geom_boxplot() +
-        scale_x_discrete(labels = c("2%", "5%", "50%")) +
+        scale_x_discrete(labels = c("Medium", "High", "Very High")) +
         theme_classic() +
         theme(legend.position = "none") +
         labs(title = title, y = "Vaccine Efficacy", x = "Annual Risk of Infection") +
