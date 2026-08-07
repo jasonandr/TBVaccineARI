@@ -34,35 +34,68 @@ multinom.mat <- function(mat) {
 #' @return A matrix of sampled events (rows=sims, cols=event types).
 sample_competing_events <- function(n_vec, rate_vec, dt) {
     n_sims <- length(n_vec)
+    r <- rate_vec
+    r[is.na(r) | r < 0] <- 0
+    k <- length(r)
+    R <- sum(r)
 
-    # Replicate rate_vec across all simulations
-    rate_mat <- matrix(rate_vec, nrow = n_sims, ncol = length(rate_vec), byrow = TRUE)
-
-    # Convert rates to probabilities using discrete-time formula
-    prob_mat <- 1 - exp(-rate_mat * dt)
-    prob_mat[is.na(prob_mat) | prob_mat < 0] <- 0
-
-    # Normalize if row sum > 1
-    row_totals <- rowSums(prob_mat)
-    over_1 <- row_totals > 1
-    if (any(over_1)) {
-        prob_mat[over_1, ] <- prob_mat[over_1, ] / row_totals[over_1]
+    if (R <= 0) {
+        return(matrix(0, nrow = n_sims, ncol = k + 1))
     }
 
-    # Add "no event" probability
-    prob_remainder <- pmax(0, 1 - rowSums(prob_mat))
-    prob_mat_full <- cbind(prob_mat, prob_remainder)
+    # Exact continuous-time competing risks: the probability that ANY event occurs
+    # in dt is 1 - exp(-sum(r) * dt), split between causes in proportion to their
+    # hazards. Converting each cause separately with 1 - exp(-r_j * dt) overstates
+    # both the total exit probability and the share of the faster causes.
+    p_any <- 1 - exp(-R * dt)
+    prob_full <- c(p_any * r / R, 1 - p_any)
 
-    # Preallocate result
-    n_events <- ncol(prob_mat_full)
-    draws <- matrix(0, nrow = n_sims, ncol = n_events)
-
-    # Multinomial sampling
+    draws <- matrix(0, nrow = n_sims, ncol = k + 1)
     for (i in seq_len(n_sims)) {
-        draws[i, ] <- as.vector(rmultinom(1, size = n_vec[i], prob = prob_mat_full[i, ]))
+        if (n_vec[i] > 0) {
+            draws[i, ] <- as.vector(rmultinom(1, size = n_vec[i], prob = prob_full))
+        }
     }
 
     return(draws) # Each row = one simulation; columns = event counts (+ no event)
+}
+
+#' Stationary early/late split of prevalent infection
+#'
+#' The base specification takes the fraction of infected individuals who are in the
+#' early state to be ARI / prevalence. That is not the split implied by the
+#' model's own natural history: it counts new infections against the whole
+#' population rather than against susceptibles, and it ignores the fact that the
+#' early state drains with mean duration 1/e.
+#'
+#' This helper returns the split implied by a stationary open population (entry
+#' and exit rate mu, chosen so that infection prevalence matches the setting):
+#'   dS/dt = mu - (lambda + mu) S
+#'   dE/dt = lambda S + omega lambda L - (r1 + e + mu) E
+#'   dL/dt = e E - (r2 + omega lambda + mu) L
+#'
+#' @return list(recent = fraction of prevalent infection in the early state,
+#'              mu = implied population turnover rate per year)
+stationary_EL_split <- function(lambda, prevalence, r1, r2, e, omega) {
+    states <- function(mu) {
+        S <- mu / (lambda + mu)
+        L_per_E <- e / (r2 + omega * lambda + mu)
+        E <- lambda * S / ((r1 + e + mu) - omega * lambda * L_per_E)
+        c(S = S, E = E, L = E * L_per_E)
+    }
+    prev_gap <- function(mu) {
+        x <- states(mu)
+        x[["E"]] + x[["L"]] - prevalence * sum(x)
+    }
+    lo <- 1e-6
+    hi <- 50
+    if (prev_gap(lo) * prev_gap(hi) > 0) {
+        # No turnover rate reproduces this prevalence; fall back on the ari split.
+        return(list(recent = NA_real_, mu = NA_real_))
+    }
+    mu <- uniroot(prev_gap, c(lo, hi), tol = 1e-10)$root
+    x <- states(mu)
+    list(recent = x[["E"]] / (x[["E"]] + x[["L"]]), mu = mu)
 }
 
 #' Competing probability helper
@@ -82,30 +115,30 @@ p_compete <- function(p1, p2) {
 #' @param times Time sequence (used for person-year calculation).
 #' @param timestep Time step size.
 #' @return A list containing VE estimate and p-values.
-VE <- function(res1, res2, popsize, times, timestep = 0.1) {
-    p.values <- rep(NA, length(res1[, 1]))
+VE <- function(res1, res2, popsize, times = NULL, timestep = 0.1) {
+    nt <- ncol(res1)
 
-    # Cumulative Person-Years calculation
-    # Cumulative Person-Years calculation
-    # Approximates PY assuming prevalence is low or using prevalence-adjusted remaining time.
-    # Actually, res contains cumulative incidence Imat.
-    # The original logic: rowSums(timestep * (1 - res/popsize)) roughly sums up healthy time steps if res is prevalence?
-    # In VaccineModel, res is Imat (cumulative incidence).
-    # So (1 - I/N) is proportion healthy. Summing this * timestep gives PY at risk.
+    # res is cumulative incidence at t = 0, dt, ..., duration. Disease-free
+    # person-time is integrated over the nt - 1 intervals between those states
+    # (trapezoid), so the denominator spans exactly the same window as the
+    # numerator. Summing all nt states would credit one interval too many.
+    person_years <- function(res) {
+        left <- res[, 1:(nt - 1), drop = FALSE]
+        right <- res[, 2:nt, drop = FALSE]
+        popsize * rowSums(timestep * (1 - (left + right) / (2 * popsize)))
+    }
 
-    PYlist1 <- popsize * rowSums(timestep * (1 - res1 / popsize))
-    PYlist2 <- popsize * rowSums(timestep * (1 - res2 / popsize))
+    PYlist1 <- person_years(res1)
+    PYlist2 <- person_years(res2)
 
-    Ilist1 <- res1[, max(times)]
-    Ilist2 <- res2[, max(times)]
+    Ilist1 <- res1[, nt]
+    Ilist2 <- res2[, nt]
 
-    for (i in 1:length(res1[, 1])) {
-        I1 <- Ilist1[i]
-        I2 <- Ilist2[i]
-        PY1 <- PYlist1[i]
-        PY2 <- PYlist2[i]
-        # Handle potential zeros or NAs if needed, but rateratio.test handles basic cases
-        p.values[i] <- as.numeric(rateratio.test(c(I1, I2), c(PY1, PY2))[1])
+    p.values <- rep(NA_real_, nrow(res1))
+    for (i in seq_len(nrow(res1))) {
+        p.values[i] <- rateratio.test(
+            c(Ilist1[i], Ilist2[i]), c(PYlist1[i], PYlist2[i])
+        )$p.value
     }
 
     return(list(
