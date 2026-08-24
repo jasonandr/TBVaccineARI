@@ -13,13 +13,14 @@
 #' @param AoN.D All-or-Nothing protection against Disease (proportion protected).
 #' @param AoN.D.pos All-or-Nothing protection against Disease for QFT+ (defaults to AoN.D).
 #' @param AoN.D.neg All-or-Nothing protection against Disease for QFT- (defaults to AoN.D).
-#' @param init Early/late split of prevalent infection: "ari" (base specification) or
-#'   "stationary" (sensitivity analysis).
+#' @param init Early/late split of prevalent infection: "stationary" (the
+#'   specification used for all published results) or "ari" (superseded; retained
+#'   for reference only -- see the note below).
 #' @return A matrix of cumulative incidence (Imat), one column per stored state
 #'   (t = 0, 0.1, ..., duration), for each simulation.
 VaccineModel <- function(sims, popsize, epi.params, prog.ratio, QFTenrol, fastprogon,
                          vaxon, LeakyPOI, LeakyPOD, AoN.I, AoN.D,
-                         AoN.D.pos = NULL, AoN.D.neg = NULL, init = "ari") {
+                         AoN.D.pos = NULL, AoN.D.neg = NULL, init = "stationary") {
     # Handle defaults for Variable POD
     if (is.null(AoN.D.pos)) AoN.D.pos <- AoN.D
     if (is.null(AoN.D.neg)) AoN.D.neg <- AoN.D
@@ -48,22 +49,34 @@ VaccineModel <- function(sims, popsize, epi.params, prog.ratio, QFTenrol, fastpr
     r1 <- prog.ratio * 0.05
     r2 <- prog.ratio * 0.0015
     e <- 1 / 0.89
+    # omega is the RELATIVE RISK of infection among the previously infected: the
+    # reinfection hazard is lambda * omega, i.e. 21% of the hazard faced by a
+    # susceptible person (79% partial protection from prior infection, ref 19).
+    # It is a natural history parameter applied identically in both trial arms;
+    # vaccine protection against (re)infection is separate, via LeakyPOI / AoN.I.
     omega <- 0.21
 
     # Split of prevalent infection between early and late states.
-    #  "ari"        - base specification: the fraction of infected individuals
-    #                 infected within the past year is taken as ARI / prevalence.
-    #  "stationary" - sensitivity analysis: the early/late split implied by a
-    #                 stationary open population sustaining this force of infection
-    #                 and infection prevalence (see stationary_EL_split()).
+    #  "stationary" - base specification: the split implied by a stationary open
+    #                 population sustaining this force of infection and infection
+    #                 prevalence (see stationary_EL_split()).
+    #  "ari"        - superseded. Takes the fraction of infected individuals
+    #                 infected within the past year to be ARI / prevalence. This
+    #                 counts new infections against the whole population rather
+    #                 than against susceptibles, so it overstates the early
+    #                 fraction where prevalence is high (71% vs 26% at 50% ARI
+    #                 and 70% prevalence). It is not the split implied by the
+    #                 model's own natural history and is not used for any
+    #                 published result; kept only so the calibration fallback
+    #                 below stays defined and for reference.
     recent_frac <- ARI / trueltbiprev
     if (init == "stationary") {
         sp <- stationary_EL_split(lambda, trueltbiprev, r1, r2, e, omega)
         # No stationary solution exists for extreme progression rates (disease
         # removes infected individuals faster than the force of infection can
-        # sustain the target prevalence). Those parameter values are outside the
-        # calibrated range; fall back on the ari split so the objective stays
-        # defined while the calibration search passes through them.
+        # sustain the target prevalence). Those values are outside the calibrated
+        # range; fall back on the ari split so the objective stays defined while
+        # the calibration search passes through them.
         if (!is.na(sp$recent)) recent_frac <- sp$recent
     }
     recent_frac <- min(max(recent_frac, 0), 1)
@@ -175,7 +188,7 @@ VaccineModel <- function(sims, popsize, epi.params, prog.ratio, QFTenrol, fastpr
 VEfromModel <- function(sims, popsize, epi_setting, epi_data, prog_data,
                         QFTenrol, fastprogon,
                         LeakyPOI, LeakyPOD, AoN.I, AoN.D = NULL,
-                        AoN.D.pos = NULL, AoN.D.neg = NULL, init = "ari") {
+                        AoN.D.pos = NULL, AoN.D.neg = NULL, init = "stationary") {
     # Lookup parameters for the specific setting
     curr_epi_params <- epi_data[epi_data$setting == epi_setting, ]
     curr_progratio <- prog_data$progratio[prog_data$setting == epi_setting]

@@ -28,7 +28,7 @@ CAL_SEED <- 1
 # 2. Define Incidence Function
 # Calculates incidence rate per 100,000 person-years
 IncidenceOut <- function(sims, popsize, epi_row, progratio, fastprogon, seed = CAL_SEED,
-                         init = "ari") {
+                         init = "stationary") {
     # Common random numbers: the same draws are used at every progression ratio,
     # so the objective is deterministic given the seed.
     set.seed(seed)
@@ -65,7 +65,8 @@ IncidenceOut <- function(sims, popsize, epi_row, progratio, fastprogon, seed = C
 }
 
 # 3. Calibration Function
-CalibrateSetting <- function(setting_name, target_incidence, fastprogon, init = "ari") {
+CalibrateSetting <- function(setting_name, target_incidence, fastprogon,
+                             init = "stationary") {
     curr_epi_row <- epi_data %>% filter(setting == setting_name)
 
     ObjectiveFn <- function(progratio) {
@@ -148,15 +149,19 @@ for (i in 1:nrow(epi_data)) {
                 row$setting, mean(roots), sd(roots), min(roots), max(roots)))
 }
 
-# D. Calibration for the stationary-initialisation sensitivity analysis
-cat("\n--- Calibrating Base Model, stationary E/L initialisation ---\n")
-results_stat <- list()
+# D. Calibration under the superseded ARI/prevalence initialisation.
+# This split takes the early fraction of prevalent infection to be ARI / prevalence,
+# which counts new infections against the whole population rather than against
+# susceptibles, and is not the split implied by the model's own natural history.
+# It is not used for any published result and is computed here for reference only.
+cat("\n--- Calibrating Base Model, ARI/prevalence E/L initialisation (superseded) ---\n")
+results_ari <- list()
 for (i in 1:nrow(epi_data)) {
     s <- epi_data$setting[i]
-    results_stat[[s]] <- CalibrateSetting(s, epi_data$incidence[i], fastprogon = 0,
-                                          init = "stationary")
+    results_ari[[s]] <- CalibrateSetting(s, epi_data$incidence[i], fastprogon = 0,
+                                         init = "ari")
 }
-df_stat <- data.frame(setting = names(results_stat), progratio = unlist(results_stat))
-write_csv(df_stat, "data/calibration_base_stationary.csv")
-cat("Saved to data/calibration_base_stationary.csv\n")
-print(df_stat)
+df_ari <- data.frame(setting = names(results_ari), progratio = unlist(results_ari))
+write_csv(df_ari, "data/calibration_ariprev.csv")
+cat("Saved to data/calibration_ariprev.csv\n")
+print(df_ari)

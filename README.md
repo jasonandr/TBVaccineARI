@@ -2,6 +2,8 @@
 
 This repository contains the R code and data for analyzing bias in Tuberculosis Vaccine Efficacy (VE) estimates in high transmission settings.
 
+The early/late split of prevalent infection at enrollment uses the stationary open-population solution (`init = "stationary"`, the default in `VaccineModel`). This is the specification used for all published results.
+
 ## Project Structure
 
 *   **`R/`**
@@ -9,7 +11,8 @@ This repository contains the R code and data for analyzing bias in Tuberculosis 
     *   `utils.R`: Helper functions for sampling and VE calculation.
 *   **`data/`**
     *   `epi_parameters.csv`: Epidemiological parameters (ARI, LTBI).
-    *   `calibration_base.csv` / `calibration_fastprog.csv`: Calibrated progression ratios.
+    *   `calibration_base.csv` / `calibration_fastprog.csv`: Calibrated progression ratios for the base and fast-progression models.
+    *   `calibration_ariprev.csv`: Calibrated ratios under the superseded ARI/prevalence early/late split; not used for any published result (see `model.R`, `init`).
     *   `power_data.rds`: Generated data for power analysis.
 *   **`analysis/`**
     *   `01_calibrate.R`: Script to calibrate progression ratios.
