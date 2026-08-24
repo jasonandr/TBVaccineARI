@@ -5,3 +5,8 @@
 Rplots.pdf
 figures/*.pdf
 data/power_data.rds
+figures/manuscript/
+analysis/schematics/*.pdf
+analysis/schematics/*.png
+analysis/schematics/*.svg
+analysis/schematics/__pycache__/
